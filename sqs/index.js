@@ -24,7 +24,7 @@ const pullMessage = async () => {
       MessageAttributeNames: [
         'All',
       ],
-      MaxNumberOfMessages: 10
+      MaxNumberOfMessages: 5
     }
 
     let msg = await sqs.receiveMessage(params, function(err, data) {
@@ -41,26 +41,26 @@ const pullMessage = async () => {
         })
 
         if (deleteParams && deleteParams.length > 0) {
-          deleteParams.map(params => {
-            sqs.deleteMessage(params, function(err, data) {
-              if (err) {
-                console.log("Delete Error", err);
-              } else {
-                console.log("Message Deleted", data);
-              }
-            });
-          })
+          Promise.all(
+            deleteParams.map(async params => {
+              await sqs.deleteMessage(params, function(err, data) {
+                if (err) {
+                  console.log("Delete Error", err);
+                } else {
+                  console.log("Message Deleted", data);
+                }
+              }).promise();
+            })
+          )
         }
-
-        let msgData = data?.Messages?.map(message => {
-          return message.Body;
-        })
-
-        return msgData;
       }
     }).promise()
 
-    return msg;
+    let msgData = msg?.Messages?.map(message => {
+      return JSON.parse(message.Body);
+    })
+
+    return msgData;
   } catch (error) {
     throw error;
   }
